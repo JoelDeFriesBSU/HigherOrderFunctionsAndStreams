@@ -10,11 +10,9 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Instant;
-import java.time.Month;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.sql.Timestamp;
+import java.time.*;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -82,10 +80,20 @@ public class HigherOrderFunctionsLearningTest {
     @Test
     public void testConcatEven() {
         Stream<String> input = Stream.of("a1", "a2", "a3", "b1", "b2", "b3");
-        String actual = input.filter(s -> s.endsWith("2") ) // Might come back and use a regex.
-                .collect(Collectors.joining());             // But using matches() turns no trues, ever.
-        String expected = "a2b2";                           // regex I was using: [02468]\b
+        String actual = input.filter(this::checkEvenNumber)
+                .collect(Collectors.joining());
+        String expected = "a2b2";
         Assertions.assertEquals(expected, actual);
+    }
+
+    public Boolean checkEvenNumber(String str){
+        String number = str.substring(str.length()-1);
+        for (int i=0 ; i < 10 ; i = i+2){
+            if (String.valueOf(i).equals(number) ){
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -156,8 +164,8 @@ public class HigherOrderFunctionsLearningTest {
     @Test
     public void testCountChangesInFebruary() {
         Stream<Revision> input = getRevisions("soup30.json");
-        long actual = input.map(s -> s.timestamp.toString())
-                .filter(s -> s.substring(4,7).contains("02"))
+        long actual = input.map(s -> s.timestamp.atZone(ZoneOffset.UTC))
+                .filter(s -> s.getMonth() == Month.FEBRUARY)
                 .count();
         int expected = 9;
         Assertions.assertEquals(expected, actual);
@@ -169,7 +177,8 @@ public class HigherOrderFunctionsLearningTest {
     @Test
     public void testCountChangesByMonth() {
         Stream<Revision> input = getRevisions("soup04.json");
-        Map<Month, Long> actual = null;
+        Map<Month, Long> actual = input.map(s -> s.timestamp.atZone(ZoneOffset.UTC))
+                .collect(Collectors.groupingBy(ZonedDateTime::getMonth, Collectors.counting()));
         Map<Month, Long> expected = Map.of(Month.FEBRUARY, 3L, Month.MARCH, 1L);
         Assertions.assertEquals(expected, actual);
     }
@@ -182,6 +191,10 @@ public class HigherOrderFunctionsLearningTest {
     public void testDetermineMostActiveMonth() {
         Stream<Revision> input = getRevisions("soup30.json");
         Month actual = null;
+        // This is the furthest I could implement:
+        /*Month actual = input.map(s -> s.timestamp.atZone(ZoneOffset.UTC))
+                .collect(Collectors.groupingBy(ZonedDateTime::getMonth, Collectors.counting()))
+                .entrySet().stream().sorted(Map.Entry.comparingByValue()).limit(1);*/
         Month expected = Month.FEBRUARY;
         Assertions.assertEquals(expected, actual);
     }
